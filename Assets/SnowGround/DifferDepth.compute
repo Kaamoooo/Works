@@ -22,7 +22,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float depth2 = _DepthTexture2[id.xy];
     float differDepth = _DifferDepthTexture[id.xy];
 
-    if (depth2 - depth1 > differDepth)
+    if (depth2 - depth1 > differDepth+0.001)
     {
         _DifferDepthTexture[id.xy] = depth2 - depth1;
     }
