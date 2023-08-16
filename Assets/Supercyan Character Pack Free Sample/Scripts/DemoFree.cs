@@ -9,7 +9,9 @@ public class DemoFree : MonoBehaviour
 
     private void Start()
     {
+#pragma warning disable CS0618
         m_animators = FindObjectsOfType<Animator>();
+#pragma warning restore CS0618
     }
 
     private void Update()
