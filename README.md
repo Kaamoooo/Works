@@ -12,6 +12,8 @@
 
 体积云（待优化）
 
+平面反射
+
 ## 动态雪地
 
 
@@ -60,4 +62,55 @@
 - CloudDepth.shader，由于是采用后处理实现，为云写入深度
 - VolumetricCloudRendererFeature.cs，挂载到renderer feature中，实现自定义后处理
 - Cloud.cs，将云物体的参数传给material
+
+## 平面反射
+
+本来是想做SSR的，但是卡在了URP后处理为反射的物体做遮罩上，想用模板测试做遮罩，但是URP后处理对模板buffer清空，需要其他设置，奈何能力有限；或使用另一个相机按层级渲染并遮罩，但是性能开销太大，同时考虑到SSR的缺陷，不如直接做平面反射。
+
+<img src="./README.assets/image-20230827190347745.png" alt="image-20230827190347745" style="zoom:70%;" />
+
+平面反射的基本思路：
+
+- 使用另一个相机，Transform和FOV等影响直接投影的参数应当一致，同时要覆写相机的WorldToCamera矩阵，使场景内的物体在相机空间中垂直颠倒，这一步需要做一些数学推导：
+
+  <img src="./README.assets/平面反射图示.jpg" alt="7[BPJKN23A3P_XZPTHOV]6H" style="zoom:50%;" />
+
+  注：此处的n向量为法向单位向量。
+
+  <img src="./README.assets/平面反射公式推导1.jpg" alt="7[BPJKN23A3P_XZPTHOV]6H" style="zoom:50%;" />
+
+<img src="./README.assets/平面反射公式推导2.jpg" alt="7[BPJKN23A3P_XZPTHOV]6H" style="zoom:50%;" />
+
+于是可以依次写出空间反转的矩阵，将其加在WorldToCamera上，即为先对物体做空间反转，再进行空间变换
+
+- 相机要手动渲染，为事件添加一个委托
+
+  ```C#
+  private void OnEnable()
+  {
+      RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
+  }
+  ```
+
+  即为当相机开始渲染的时候调用这个函数，主相机渲染时调用反射相机
+
+  在这个委托中计算刚才的矩阵并覆写，同时使用invertCulling，来渲染被剔除的面，以渲染不可见的面，这也是较于SSR的优势。
+
+  ```C#
+  GL.invertCulling = true;
+  //这个API存在Bug，应当直接使用"Obsolete"的RenderSingleCamera
+  // RenderPipeline.SubmitRenderRequest(_reflectionCamera, context);
+  UniversalRenderPipeline.RenderSingleCamera(context, _reflectionCamera);
+  GL.invertCulling = false;
+  ```
+
+  至此反射纹理可以被正常渲染
+
+- Shader的编写很简单，不过要注意的是，采样要使用反射平面的NDC坐标，以将纹理按屏幕空间投影，否则会将纹理平铺在平面上。
+
+  
+
+  
+
+  
 

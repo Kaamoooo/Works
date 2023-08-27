@@ -12,6 +12,7 @@ Shader "Custom/SnowGenerate"
         Tags
         {
             "RenderType"="Opaque"
+            "Queue"="Geometry"
         }
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -33,7 +34,6 @@ Shader "Custom/SnowGenerate"
         LOD 100
         Pass
         {
-            ZWrite On
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -69,19 +69,20 @@ Shader "Custom/SnowGenerate"
                 real4 snow = tex2D(_SnowTex, i.uv);
                 float facingRatio = saturate(dot(i.worldNormal, float3(0, 1, 0) * _SnowHeight));
                 real4 ao = tex2D(_AOTex, i.uv);
-                return facingRatio * ao * snow + col;
+                float3 finalCol = facingRatio * ao * snow + col;
+                return float4(finalCol, 1);
             }
             ENDHLSL
         }
         Pass
         {
+            ZWrite On
             ColorMask 0
             Tags
             {
                 "LightMode" = "DepthOnly"
             }
             HLSLPROGRAM
-            
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_shadowcaster
@@ -91,13 +92,13 @@ Shader "Custom/SnowGenerate"
             {
                 v2f o;
                 o.vertex = TransformObjectToHClip(v.vertex.xyz);
-                o.uv=v.uv;
+                o.uv = v.uv;
                 return o;
             }
 
             float4 frag(v2f i):SV_Target
             {
-                return float4(1,1,0,0);   
+                return float4(1, 1, 0, 0);
             }
             ENDHLSL
         }

@@ -29,8 +29,7 @@ namespace 体积云
                 _source = renderer.cameraColorTargetHandle;
                 RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
                 opaqueDesc.depthBufferBits = 0;
-                RenderingUtils.ReAllocateIfNeeded(ref _tmpTex, opaqueDesc, FilterMode.Bilinear, TextureWrapMode.Clamp,
-                    name: "VolumetricCloudFeatureTmpTex");
+                RenderingUtils.ReAllocateIfNeeded(ref _tmpTex, opaqueDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
             }
 
             public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
