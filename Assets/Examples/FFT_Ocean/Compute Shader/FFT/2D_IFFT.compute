@@ -1,0 +1,96 @@
+#pragma kernel IFFT2D_Row
+#pragma kernel IFFT2D_Column
+#pragma kernel Normalization
+
+RWTexture2D<float4> InputRT;  // 复数输入
+RWTexture2D<float4> OutputRT; // 复数输出
+int StepLength;
+int N;
+float Scale;
+
+uint BitReverse(uint x, uint log2N) {
+    uint n = 0;
+    for (uint i = 0; i < log2N; i++) {
+        n = (n << 1) | (x & 1);
+        x >>= 1;
+    }
+    return n;
+}
+
+float2 W(int k, int N) {
+    float theta = 2.0 * 3.14159265359 * k / N;
+    return float2(cos(theta), sin(theta));
+}
+
+float2 ComplexMul(float2 a, float2 b) {
+    return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+[numthreads(8, 8, 1)]
+void IFFT2D_Row(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= N || id.y >= N) return;
+    bool _isFirstHalf = (id.y % StepLength) < (StepLength / 2);
+    float2 _res = float2(0, 0);
+    if(StepLength == 2){
+        if(_isFirstHalf){
+            uint _lastHalfId = id.y + 1;
+            uint _revIdU = BitReverse(id.y, (uint)log2(N));
+            uint _revIdV = BitReverse(_lastHalfId, (uint)log2(N));
+            _res = InputRT[int2(id.x, _revIdU)].xy + 
+                ComplexMul(W( 0, StepLength), InputRT[int2(id.x, _revIdV)].xy);
+        }else{
+            uint _firstHalfId = id.y - 1;
+            uint _revIdU = BitReverse(_firstHalfId, (uint)log2(N));
+            uint _revIdV = BitReverse(id.y, (uint)log2(N));
+            _res = InputRT[int2(id.x, _revIdU)].xy - 
+                ComplexMul(W( 0, StepLength), InputRT[int2(id.x, _revIdV)].xy);
+        }
+    }else{
+        if(_isFirstHalf){
+            uint _lastHalfId = id.y + StepLength / 2;
+            _res = InputRT[id.xy].xy + ComplexMul(W( _lastHalfId % (StepLength / 2), StepLength), InputRT[float2(id.x,_lastHalfId)].xy);
+        }else{
+            uint _firstHalfId = id.y - StepLength / 2;
+            _res = InputRT[float2(id.x,_firstHalfId)].xy - ComplexMul(W( id.y % (StepLength / 2), StepLength), InputRT[id.xy].xy);
+        }
+    }
+    OutputRT[id.xy] = float4(_res, 0, 0);
+}
+
+[numthreads(8, 8, 1)]
+void IFFT2D_Column(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= N || id.y >= N) return;
+   bool _isFirstHalf = (id.x % StepLength) < (StepLength / 2);
+   float2 _res = float2(0, 0);
+   if(StepLength == 2){
+       if(_isFirstHalf){
+           uint _lastHalfId = id.x + 1;
+           uint _revIdU = BitReverse(id.x, (uint)log2(N));
+           uint _revIdV = BitReverse(_lastHalfId, (uint)log2(N));
+           _res = InputRT[int2(_revIdU,id.y)].xy + 
+               ComplexMul(W( 0, StepLength), InputRT[int2(_revIdV,id.y)].xy);
+       }else{
+           uint _firstHalfId = id.x - 1;
+           uint _revIdU = BitReverse(_firstHalfId, (uint)log2(N));
+           uint _revIdV = BitReverse(id.x, (uint)log2(N));
+           _res = InputRT[int2(_revIdU,id.y)].xy - 
+               ComplexMul(W( 0, StepLength), InputRT[int2(_revIdV,id.y)].xy);
+       }
+   }else{
+       if(_isFirstHalf){
+           uint _lastHalfId = id.x + StepLength / 2;
+           _res = InputRT[id.xy].xy + ComplexMul(W( _lastHalfId % (StepLength / 2), StepLength), InputRT[float2(_lastHalfId,id.y)].xy);
+       }else{
+           uint _firstHalfId = id.x - StepLength / 2;
+           _res = InputRT[float2(_firstHalfId,id.y)].xy - ComplexMul(W( id.x % (StepLength / 2), StepLength), InputRT[id.xy].xy);
+       }
+   }
+   OutputRT[id.xy] = float4(_res, 0, 0);
+}
+
+[numthreads(8, 8, 1)]
+void Normalization(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= N || id.y >= N) return;
+//     OutputRT[id.xy] = InputRT[id.xy] * Scale;
+    OutputRT[id.xy] = InputRT[id.xy] * Scale / N;
+}

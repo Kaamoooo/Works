@@ -1,0 +1,67 @@
+#pragma kernel CSMain
+
+cbuffer Params : register(b0)
+{
+    int N;
+    float A;
+    float4 Wind;
+};
+
+RWTexture2D<float4> GaussianRT;
+RWTexture2D<float4> H0OmegaRT;
+
+static const float G = 9.81f;
+static const float PI = 3.14159265359f;
+
+float dispersion(float2 k);
+float DonelanBannerDirectionalSpreading(float2 k);
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    float4 res = float4(0, 0, 0, 1);
+    float deltaK = 2.0f * PI / N;
+    float kx = deltaK * ((int)id.x - N / 2);
+    float ky = deltaK * ((int)id.y - N / 2);
+    float2 kVec = float2(kx, ky);
+    float kLength = max(0.0001f,length(kVec));
+    float omega = dispersion(kVec);
+    res.z = omega;
+    float L = Wind.z * Wind.z / G;
+    float ph = A * exp(-1.0f / (kLength * L * kLength * L)) / (kLength * kLength * kLength * kLength) 
+        * dot(kVec, Wind.xy) * dot(kVec, Wind.xy) * DonelanBannerDirectionalSpreading(kVec);
+    float tmpTerm = 1 / sqrt(2.0f) * sqrt(abs(ph));
+//     res.x = exp(-1.0f / (kLength * L * kLength * L));
+    res.x = GaussianRT[id.xy].x * tmpTerm;
+    res.y = GaussianRT[id.xy].y * tmpTerm;
+    H0OmegaRT[id.xy] = res;
+}
+
+float DonelanBannerDirectionalSpreading(float2 k)
+{
+    float betaS;
+    float omegap = 0.855f * G / Wind.z;
+    float ratio = dispersion(k) / omegap;
+
+    if (ratio < 0.95f)
+    {
+        betaS = 2.61f * pow(ratio, 1.3f);
+    }
+    if(ratio >= 0.95f && ratio < 1.6f)
+    {
+        betaS = 2.28f * pow(ratio, -1.3f);
+    }
+    if(ratio > 1.6f)
+    {
+        float epsilon = -0.4f + 0.8393f * exp(-0.567f * log(ratio * ratio));
+        betaS = pow(10, epsilon);
+    }
+    float theta = atan2(k.y, k.x) - atan2(Wind.y, Wind.x);
+
+    return betaS / max(1e-7f, 2.0f * tanh(betaS * PI) * pow(cosh(betaS * theta), 2));
+}
+
+float dispersion(float2 k)
+{
+    return sqrt(G * length(k));
+}

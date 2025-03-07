@@ -1,0 +1,50 @@
+#pragma kernel CSMain
+
+cbuffer Params : register(b0)
+{
+    int N;
+    float t;
+};
+static const float PI = 3.14159265359f;
+
+RWTexture2D<float4> H0OmegaRT;
+
+RWTexture2D<float4> VerticalSpectrumTexture;
+RWTexture2D<float4> HorizontalXSpectrumTexture;
+RWTexture2D<float4> HorizontalZSpectrumTexture;
+RWTexture2D<float4> GradientXSpectrumTexture;
+RWTexture2D<float4> GradientZSpectrumTexture;
+
+float2 ComplexMultiply(float2 a, float2 b)
+{
+    return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float deltaK = 2.0f * PI / N;
+    float kx = deltaK * ((int)id.x - N / 2);
+    float ky = deltaK * ((int)id.y - N / 2);
+    float kLength = max(0.001f,length(float2(kx, ky)));
+    
+    float2 h0k = H0OmegaRT[id.xy].xy;
+    float h0Omega = H0OmegaRT[id.xy].z;
+    float2 ht = ComplexMultiply(h0k, float2(cos(h0Omega * t), sin(h0Omega * t)));
+    
+    float2 h0kConj = H0OmegaRT[N - id.xy].xy; h0kConj.y *= -1;
+    float2 htConj = ComplexMultiply(h0kConj, float2(cos( -h0Omega * t), sin( -h0Omega * t)));
+    
+    float2 hTilde = ht + htConj;
+    float2 KxHTilde = ComplexMultiply(float2(0, -kx / kLength), hTilde);
+    float2 kzHTilde = ComplexMultiply(float2(0, -ky / kLength), hTilde);
+    float2 gradientX = ComplexMultiply(float2(0,kx), hTilde);
+    float2 gradientZ = ComplexMultiply(float2(0,ky), hTilde);
+    
+//     hTilde = float2(sin(t),0);
+    VerticalSpectrumTexture[id.xy] = float4(hTilde, 0, 0);
+    HorizontalXSpectrumTexture[id.xy] = float4(KxHTilde, 0,0);
+    HorizontalZSpectrumTexture[id.xy] = float4(kzHTilde, 0,0);
+    GradientXSpectrumTexture[id.xy] = float4(gradientX, 0,0);
+    GradientZSpectrumTexture[id.xy] = float4(gradientZ, 0,0);
+}

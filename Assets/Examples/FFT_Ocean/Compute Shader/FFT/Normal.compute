@@ -1,0 +1,53 @@
+#pragma kernel CSMain
+
+int N;
+float OceanSize;
+float BubbleThreshold;
+float BubbleScale;
+
+RWTexture2D<float4> HorizontalXRT;
+RWTexture2D<float4> HorizontalZRT;
+RWTexture2D<float4> VerticalRT;
+RWTexture2D<float4> GradientXRT;
+RWTexture2D<float4> GradientZRT;
+
+RWTexture2D<float4> NormalRT;
+RWTexture2D<float4> BubbleRT;
+RWTexture2D<float4> DisplacementRT;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint2 uvX_Positive = uint2((id.x + 1 + N) % N, id.y);
+    uint2 uvX_Negative = uint2((id.x - 1 + N) % N, id.y);
+    uint2 uvZ_Positive = uint2(id.x, (id.y + 1 + N) % N);
+    uint2 uvZ_Negative = uint2(id.x, (id.y - 1 + N) % N);
+    
+    float4 displacementX_Positive = float4(HorizontalXRT[uvX_Positive].x, VerticalRT[uvX_Positive].x, HorizontalZRT[uvX_Positive].x, 0);
+    float4 displacementX_Negative = float4(HorizontalXRT[uvX_Negative].x, VerticalRT[uvX_Negative].x, HorizontalZRT[uvX_Negative].x, 0);
+    float4 displacementZ_Positive = float4(HorizontalXRT[uvZ_Positive].x, VerticalRT[uvZ_Positive].x, HorizontalZRT[uvZ_Positive].x, 0);
+    float4 displacementZ_Negative = float4(HorizontalXRT[uvZ_Negative].x, VerticalRT[uvZ_Negative].x, HorizontalZRT[uvZ_Negative].x, 0);
+    
+    float unitOceanSize = 1.0f * OceanSize / (N - 1);
+    float4 x_Positive = displacementX_Positive + float4(unitOceanSize, 0, 0, 0);
+    float4 x_Negative = displacementX_Negative - float4(unitOceanSize, 0, 0, 0);
+    float4 z_Positive = displacementZ_Positive + float4(0, 0, unitOceanSize, 0);
+    float4 z_Negative = displacementZ_Negative - float4(0, 0, unitOceanSize, 0);
+    
+    float4 tangentX = x_Positive - x_Negative;
+    float4 tangentZ = z_Positive - z_Negative;
+    
+//     float3 normal = normalize(cross(tangentZ.xyz,tangentX.xyz));
+    float2 gradient = float2(GradientXRT[id.xy].x, GradientZRT[id.xy].x);
+    float3 normal = normalize(float3(-gradient.x, 1, -gradient.y));
+    NormalRT[id.xy] = float4(normal,0);
+    
+    float3 ddx =  (displacementX_Positive - displacementX_Negative) / (2 * unitOceanSize);
+    float3 ddz = (displacementZ_Positive - displacementZ_Negative) / (2 * unitOceanSize);
+    float jacobi = (1.0f + ddx.x) * (1.0f + ddz.z) - ddx.z * ddz.x;
+//     float foam = saturate(max(0, -jacobi - BubbleThreshold) * BubbleScale);
+    float foam = saturate(BubbleThreshold - jacobi) * BubbleScale;
+    BubbleRT[id.xy] = float4(foam, foam, foam, 1);
+    
+    DisplacementRT[id.xy] = float4(HorizontalXRT[id.xy].x, VerticalRT[id.xy].x, HorizontalZRT[id.xy].x, 1);
+}

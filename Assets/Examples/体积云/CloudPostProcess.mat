@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CloudPostProcess
+  m_Shader: {fileID: 4800000, guid: c9157ba5e3d425442b2e0a3c0be122d2, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise2D:
+        m_Texture: {fileID: 2800000, guid: 51b54364ca7d0eb4ebd47efd9be0c7d9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise3D:
+        m_Texture: {fileID: 11700000, guid: 4ed99a7ccafd728408a1bd580f472384, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints:
+    - _MarchIterations: 256
+    m_Floats:
+    - _BlurUVScale: 0.005
+    - _CloudSpeed: 0.89
+    - _CloudThreshold: 0
+    - _DensityPower: 3.2
+    - _DensityScale: 8.31
+    - _DensityThreshold: 0.78
+    - _Iterations: 256
+    - _LightAttenuation: 1.63
+    - _LightIntensity: 0.939
+    - _LightIterations: 8
+    - _LightPower: 6.32
+    - _LightScale: 1.06
+    - _LightStepSize: 0.4
+    - _MarchIterations: 64
+    - _NoiseOffsetScale: 0.1
+    - _ReflectionAttenuation: 25.69
+    - _ReflectionIntensity: 1.78
+    - _ReflectionPower: 6.07
+    - _ReflectionRatio: 0.1
+    - _ReflectionRatioAttenuation: 0.1
+    - _ReflectionRatioExponent: 9.46
+    - _ReflectionRatioScale: 2.57
+    - _ReflectionRationScale: 0.1
+    - _ReflectionScale: 1
+    - _ReflectionTransitionScale: 0.5
+    - _ReflectionTransmissionAttenuationExponent: 0.2
+    - _ReflectionTransmissionScale: 1.54
+    - _ReflectionTransmitionScale: 0.5
+    - _StepSize: 0.54
+    - _VisibilityExponent: 0.4
+    - _VisibilityScale: 130.81
+    m_Colors: []
+  m_BuildTextureStacks: []

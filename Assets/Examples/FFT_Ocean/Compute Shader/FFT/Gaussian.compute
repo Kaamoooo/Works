@@ -1,0 +1,29 @@
+#pragma kernel CSMain
+
+RWTexture2D<float4> GaussianRT;
+
+float Random(uint id)
+{
+    id = (id ^ 61) ^ (id >> 16);
+    id *= 9;
+    id = id ^ (id >> 4);
+    id *= 0x27d4eb2d;
+    id = id ^ (id >> 15);
+    return frac(id * 2.3283064365386963e-10);
+}
+
+float2 BoxMuller(uint id)
+{
+    float u1 = max(Random(id), 1e-6); 
+    float u2 = Random(id + 1);
+    float r = sqrt(-2.0 * log(u1));
+    float theta = 2.0 * 3.14159265359 * u2;
+    return float2(r * cos(theta), r * sin(theta)); 
+}
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    float2 gauss = BoxMuller(id.x + id.y * 512);
+    GaussianRT[id.xy] = float4(gauss.x, gauss.y, 0, 1);
+}

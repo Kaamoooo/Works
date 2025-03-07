@@ -1,0 +1,29 @@
+#pragma kernel CSMain
+
+RWTexture2D<float> Input;
+RWTexture2D<float> Output;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint2 baseId;
+    baseId.x = id.x - id.x % 2;
+    baseId.y = id.y - id.y % 2;
+    uint2 ids[4];
+    ids[0] = uint2(baseId.x, baseId.y);
+    ids[1] = uint2(baseId.x + 1, baseId.y);
+    ids[2] = uint2(baseId.x, baseId.y + 1);
+    ids[3] = uint2(baseId.x + 1, baseId.y + 1);
+    float maxValue = -1;
+    for (int i = 0; i < 4; i++)
+    {
+        float value = Input[ids[i]];
+//         float value = Input[id.xy];
+        if (value > maxValue)
+        {
+            maxValue = value;
+        }
+    }
+    Output[id.xy / 2] =  maxValue;
+//     Output[id.xy / 2] =  1.0 * id.x/2000;
+}
