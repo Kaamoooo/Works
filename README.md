@@ -1,5 +1,13 @@
 # Unity Works
 
+## BlackHole
+
+![BlackHole](./README.assets/BlackHole.gif)
+
+针对黑洞Sphere进行Ray Marching
+
+为了使得半透明物体也可以被透射到，因此使用Render Object将黑洞材质覆盖到AfterTransparents进行渲染，并使用Renderer Feature在同样的时机将相机颜色缓冲Blit到一张texture上以便于采样，同时原材质要注意不能渲染到颜色缓冲中（因此我将原材质设置了AlphaClip为1）
+
 ## Decal
 
 ![image-20250307202534779](./README.assets/image-20250307202534779.png)

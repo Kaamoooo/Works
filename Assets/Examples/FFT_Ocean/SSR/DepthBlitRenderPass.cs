@@ -73,7 +73,7 @@ public class DepthBlitRenderPass : ScriptableRenderPass
         }
 
         _cmd.SetGlobalTexture("_CameraDepthTextureWithLOD", m_depthRT);
-        _cmd.SetGlobalTexture("_CameraColorTexture", m_opaqueColorRT);
+        _cmd.SetGlobalTexture("_CameraOpaqueColorTexture", m_opaqueColorRT);
         context.ExecuteCommandBuffer(_cmd);
         _cmd.Clear();
         CommandBufferPool.Release(_cmd);

@@ -77,8 +77,8 @@ Shader "Unlit/Ocean"
             sampler2D _NormalRT;
             sampler2D _BubbleRT;
 
-            TEXTURE2D(_CameraColorTexture);
-            SAMPLER(sampler_CameraColorTexture);
+            TEXTURE2D(_CameraOpaqueColorTexture);
+            SAMPLER(sampler_CameraOpaqueColorTexture);
 
             TEXTURE2D(_CameraDepthTextureWithLOD);
             SAMPLER(sampler_CameraDepthTextureWithLOD);
@@ -224,7 +224,7 @@ Shader "Unlit/Ocean"
                 float3 reflectedColor = float3(0, 0, 0);
                 if (reflected)
                 {
-                    reflectedColor = SAMPLE_TEXTURE2D(_CameraColorTexture, sampler_CameraColorTexture, reflectUV);
+                    reflectedColor = SAMPLE_TEXTURE2D(_CameraOpaqueColorTexture, sampler_CameraOpaqueColorTexture, reflectUV);
                     // reflectedColor = float3(1, 1, 1);
                 }
                 // return float4(col.xyz, 1);
