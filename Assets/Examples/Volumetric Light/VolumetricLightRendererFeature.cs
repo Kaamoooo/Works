@@ -1,92 +1,103 @@
+using System.Collections.Generic;
+using Accord;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace Examples.Volumetric_Light
 {
-    public class VolumetricLightFeature : ScriptableRendererFeature
+    public class VolumetricLightRendererFeature : ScriptableRendererFeature
     {
-        [System.Serializable]
-        public class RendererFeatureSettings
-        {
-            public Material material = null;
-            public RenderPassEvent whenToInsert = RenderPassEvent.AfterRenderingOpaques;
-        }
+        public Material m_VolumetricLightMaterial;
+        public Material m_VolumetricLightBlendMaterial;
+        public Material m_BlitMaterial;
 
-        public RendererFeatureSettings settings = new RendererFeatureSettings();
+        [Range(0,1)] public float m_BlendFactor;
+        
+        private VolumetricLightRenderPass _volumetricLightRenderPass;
+        private VolumetricLightBlendPass _volumetricLightBlendPass;
 
-        class CustomRenderPass : ScriptableRenderPass
-        {
-            public Material material;
-            public string profilerTag;
-
-            private RTHandle _source;
-            private RTHandle _tmpTex;
-
-            public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-            {
-                var renderer = renderingData.cameraData.renderer;
-                _source = renderer.cameraColorTargetHandle;
-                RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
-                opaqueDesc.depthBufferBits = 0;
-                RenderingUtils.ReAllocateIfNeeded(ref _tmpTex, opaqueDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
-            }
-
-            public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
-            {
-                ConfigureTarget(_source);
-            }
-
-            public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
-            {
-                // Debug.Log(renderingData.cameraData.camera.cameraType);
-                if (renderingData.cameraData.isPreviewCamera) return;
-
-                CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
-
-                if (material != null)
-                {
-                    Blitter.BlitCameraTexture(cmd, _source, _tmpTex, material, 0);
-                    Blitter.BlitCameraTexture(cmd, _tmpTex, _source, material, 0);
-                }
-
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-                CommandBufferPool.Release(cmd);
-            }
-
-            public void Dispose()
-            {
-                _tmpTex?.Release();
-            }
-        }
-
-        CustomRenderPass _scriptablePass;
-
+        private GameObject[] m_spotLights;
+        private RTHandle[] m_volumetricLightColorRTs;
+        private RTHandle[] m_volumetricLightWorldPosRTs;
+        
+        private int m_frameIndex = 0;
         public override void Create()
         {
-            _scriptablePass = new CustomRenderPass
+            m_spotLights = GameObject.FindGameObjectsWithTag("VolumetricSpotLight");
+            m_volumetricLightColorRTs = new RTHandle[2];
+            m_volumetricLightWorldPosRTs = new RTHandle[2];
+            
+            _volumetricLightRenderPass = new VolumetricLightRenderPass
             {
-                profilerTag = "Volumetric Light",
-                material = settings.material,
-                renderPassEvent = settings.whenToInsert
+                renderPassEvent = RenderPassEvent.AfterRenderingTransparents,
+                m_profilerTag = "VolumetricLightRenderPass",
+                m_VolumetricLightMaterial = m_VolumetricLightMaterial,
+                m_SpotLights = m_spotLights
+            };
+
+            _volumetricLightBlendPass = new VolumetricLightBlendPass
+            {
+                renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing,
+                m_ProfilerTag = "VolumetricLightBlendPass",
+                m_VolumetricLightBlendMaterial = m_VolumetricLightBlendMaterial,
+                m_BlitMaterial = m_BlitMaterial,
+                m_BlendFactor = m_BlendFactor
             };
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _scriptablePass.ConfigureInput(ScriptableRenderPassInput.Color);
-            renderer.EnqueuePass(_scriptablePass);
+            if (!renderingData.cameraData.camera.CompareTag("MainCamera")) return;
+
+            _volumetricLightRenderPass.ConfigureInput(ScriptableRenderPassInput.Color);
+            renderer.EnqueuePass(_volumetricLightRenderPass);
+            
+            _volumetricLightBlendPass.ConfigureInput(ScriptableRenderPassInput.Color);
+            renderer.EnqueuePass(_volumetricLightBlendPass);
         }
 
-        public override void SetupRenderPasses(ScriptableRenderer renderer,
-            in RenderingData renderingData)
+        public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
         {
+            if (!renderingData.cameraData.camera.CompareTag("MainCamera")) return;
+
+            var _cameraRtDesc = renderingData.cameraData.cameraTargetDescriptor;
+            _cameraRtDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
+            _cameraRtDesc.depthBufferBits = 0;
+            RenderingUtils.ReAllocateIfNeeded(ref m_volumetricLightColorRTs[0], _cameraRtDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
+            RenderingUtils.ReAllocateIfNeeded(ref m_volumetricLightColorRTs[1], _cameraRtDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
+
+            _cameraRtDesc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
+            // _cameraRtDesc.depthBufferBits = 32;
+            RenderingUtils.ReAllocateIfNeeded(ref m_volumetricLightWorldPosRTs[0], _cameraRtDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
+            RenderingUtils.ReAllocateIfNeeded(ref m_volumetricLightWorldPosRTs[1], _cameraRtDesc, FilterMode.Bilinear, TextureWrapMode.Clamp);
+
+            _volumetricLightRenderPass.m_FrameIndex = m_frameIndex;
+            _volumetricLightRenderPass.m_VolumetricLightColorRTs = m_volumetricLightColorRTs;
+            _volumetricLightRenderPass.m_VolumetricLightWorldPosRTs = m_volumetricLightWorldPosRTs;
+            
+            _volumetricLightBlendPass.m_FrameIndex = m_frameIndex;
+            _volumetricLightBlendPass.m_VolumetricLightColorRTs = m_volumetricLightColorRTs;
+            _volumetricLightBlendPass.m_VolumetricLightWorldPosRTs = m_volumetricLightWorldPosRTs;
+            
+            m_frameIndex = (m_frameIndex + 1) % 2;
+            
+            _volumetricLightRenderPass.Setup(renderer);
+            _volumetricLightBlendPass.Setup(renderer);
         }
+
 
         protected override void Dispose(bool disposing)
         {
-            _scriptablePass.Dispose();
+            _volumetricLightRenderPass.Dispose();
+            _volumetricLightBlendPass.Dispose();
+
+            // for (int i = 0; i < m_volumetricLightColorRTs.Length; i++)
+            // {
+            //     m_volumetricLightColorRTs[i].Release();
+            // }
+            // m_volumetricLightDepthRT.Release();
         }
     }
 }

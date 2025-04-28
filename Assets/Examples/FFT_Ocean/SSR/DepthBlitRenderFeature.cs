@@ -25,13 +25,6 @@ public class DepthBlitRenderFeature : ScriptableRendererFeature
         m_depthBlitRenderPass = new DepthBlitRenderPass(m_Settings);
         m_clearCameraColorRenderPass = new ClearCameraColorRenderPass();
     }
-
-    public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
-    {
-        m_depthBlitRenderPass.Setup(renderer.cameraColorTargetHandle,renderer.cameraDepthTargetHandle);
-        m_clearCameraColorRenderPass.Setup(renderer.cameraColorTargetHandle,renderer.cameraDepthTargetHandle);
-    }
-    
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         m_depthBlitRenderPass.ConfigureInput(ScriptableRenderPassInput.Color);
@@ -39,6 +32,13 @@ public class DepthBlitRenderFeature : ScriptableRendererFeature
         m_clearCameraColorRenderPass.ConfigureInput(ScriptableRenderPassInput.Color);
         renderer.EnqueuePass(m_clearCameraColorRenderPass);
     }
+
+    public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
+    {
+        m_depthBlitRenderPass.Setup(renderer.cameraColorTargetHandle,renderer.cameraDepthTargetHandle);
+        m_clearCameraColorRenderPass.Setup(renderer.cameraColorTargetHandle,renderer.cameraDepthTargetHandle);
+    }
+    
     
     
     protected override void Dispose(bool disposing)

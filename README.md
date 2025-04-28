@@ -1,5 +1,17 @@
 # Unity Works
 
+## Volumetric Spot Light
+
+![image-20250428153852998](./README.assets/image-20250428153852998.png)
+
+基于光线步进的体积光
+
+使用锥形Mesh框定Spot Light范围，编写脚本同步了Spot Light与Mesh的大小，每组体积光使用一个相机保存一定分辨率的深度图。
+
+通过Renderer Feature写入对应体积光的深度，并采用光线步进逐步对比深度来写入颜色，由于是半透明，要求draw时需要从远到近的渲染（然而对于交叉半透明来说仍然会存在问题，需要采用OIT算法来优化）。由于光线步进时为了避免条纹状缺陷，采用了一定的随机jitter，因此在将所有体积光的颜色和深度渲染到对应的RT当中后，需要融合上一帧的颜色信息来进行降噪。最后依据写入的体积光的深度，来对比opaque深度使体积光颜色与场景颜色进行融合。
+
+
+
 ## BlackHole
 
 ![BlackHole](./README.assets/BlackHole.gif)

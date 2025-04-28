@@ -1,14 +1,27 @@
-Shader "Custom/VolumetricLight/VolumetricLight"
+Shader "Custom/VolumetricLight"
 {
     Properties
     {
-        _StepLength("Step Length", Range(0.0001, 0.5)) = 0.02
-        _MaxLightness("Max Lightness", Range(0, 1)) = 0.7
+        _MaxStepCount("Max Step Count", Range(10, 200)) = 20
+        _ColorIntensity("Color Intensity", Range(0, 1)) = 1
+        _AlphaIntensity("Alpha Intensity", Range(0, 1)) = 1
+        _JitterScale("Jitter Scale", Range(0, 0.1)) = 0
+        _BlendFactor("Blend Factor", Range(0, 1)) = 1
     }
     SubShader
     {
+
+        Tags
+        {
+            "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"
+        }
         Pass
         {
+
+            ZWrite Off
+            ZTest Off
+            Blend SrcAlpha OneMinusSrcAlpha
+
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -27,97 +40,111 @@ Shader "Custom/VolumetricLight/VolumetricLight"
             {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
-                float3 viewPos : TEXCOORD1;
+                float3 worldPos : TEXCOORD1;
             };
 
-            v2f vert(Attributes v)
+            v2f vert(appdata v)
             {
                 v2f o;
-                o.vertex = GetFullScreenTriangleVertexPosition(v.vertexID);
-                o.uv = GetFullScreenTriangleTexCoord(v.vertexID);
-
-                float4 screenPos = ComputeScreenPos(o.vertex); // 0...w
-                float4 NDCPos = (screenPos / screenPos.w) * 2 - 1; // -1...1
-                float far = _ProjectionParams.z;
-                float4 clipPos = float4(NDCPos.xy, 1, 1) * far;
-                o.viewPos = mul(unity_CameraInvProjection, clipPos).xyz;
+                o.vertex = TransformObjectToHClip(v.vertex);
+                o.uv = v.uv;
+                o.worldPos = TransformObjectToWorld(v.vertex);
                 return o;
             }
 
             sampler2D _CameraDepthTexture;
-            float3 _LightDirection;
-            float3 _LightPosition;
-            float3 _VolumeCenterPosition;
-            float3 _VolumeSize;
-            float _StepLength;
-            float _MaxLightness;
-
-            sampler2D _LightDepthTexture;
-            float4x4 _LightViewProjectionMatrix;
-
-            bool IsInVolume(float3 worldPos)
+            TEXTURE2D(_SpotLightDepthTexture);
+            SAMPLER(sampler_SpotLightDepthTexture);
+            TEXTURE2D(_CameraAllColorTexture);
+            SAMPLER(sampler_CameraAllColorTexture);
+            TEXTURE2D(_VolumetricLightColorTexture);
+            SAMPLER(sampler_VolumetricLightColorTexture);
+            TEXTURE2D(_LastFrameColorTexture);
+            SAMPLER(sampler_LastFrameColorTexture);
+            TEXTURE2D(_LastFrameDepthTexture);
+            SAMPLER(sampler_LastFrameDepthTexture);
+            
+            float3 _WorldSpaceSpotLightPos;
+            float3 _ForwardDirection;
+            float3 _RightDirection;
+            float3 _SpotLightColor;
+            float _SpotLightOuterAngle;
+            float _SpotLightCameraNearPlane;
+            float _SpotLightCameraFarPlane;
+            float _OrthographicCameraSize;
+            float4x4 _LastFrameWorldToCameraMatrix;
+            float4x4 _SpotLightCameraViewProjectionMatrix;
+            
+            float _MaxStepCount;
+            float _ColorIntensity;
+            float _AlphaIntensity;
+            float _JitterScale;
+            float _BlendFactor;
+            
+            float4 frag(v2f i) : SV_Target
             {
-                float3 localPos = worldPos - _VolumeCenterPosition;
-                float3 halfSize = _VolumeSize / 2;
-                return abs(localPos.x) < halfSize.x && abs(localPos.y) < halfSize.y && abs(localPos.z) < halfSize.z;
-            }
-
-            bool LightDetected(float3 worldPos)
-            {
-                float4 lightClipPos = mul(_LightViewProjectionMatrix, float4(worldPos, 1));
-                float2 lightUV = float2(lightClipPos.x / lightClipPos.w, lightClipPos.y / lightClipPos.w) * 0.5 + 0.5;
-                float lightPositionDepth = -1 * lightClipPos.z / lightClipPos.w * 0.5 + 0.5;
-                float lightTextureDepth = tex2D(_LightDepthTexture, lightUV).r;
-                if (lightTextureDepth == 0 || lightUV.x < 0 || lightUV.x > 1 || lightUV.y < 0 || lightUV.y > 1 ||
-                    lightPositionDepth < 0 ||
-                    lightPositionDepth > 1)
+                // return float4(normalize(_WorldSpaceCameraPos), 0.5);
+                float3 upDirection = normalize(cross(_ForwardDirection, _RightDirection));
+                float3 stepDirection = normalize(i.worldPos - _WorldSpaceCameraPos);
+                float stepLength =max((_SpotLightCameraFarPlane - _SpotLightCameraNearPlane) / _MaxStepCount ,
+                    _OrthographicCameraSize * 2  / _MaxStepCount);
+                float3 currentPosition = i.worldPos;
+                float3 color = 0;
+                float steps = 0;
+                float validSteps = 0;
+                UNITY_LOOP
+                for(; steps < _MaxStepCount ; steps++)
                 {
-                    lightTextureDepth = 100;
+                    float jitter = frac((_Time.x + steps * 12.9898 + 78.233) * 43758.5453) * _JitterScale;
+                    currentPosition += stepDirection * (stepLength + jitter);
+                    float3 a = normalize(currentPosition - _WorldSpaceSpotLightPos);
+                    float angle = acos(dot(a, _ForwardDirection)) * 180 / PI;
+                    if(angle > _SpotLightOuterAngle * 0.5) break;
+                    
+                    float2 screenUV = ComputeNormalizedDeviceCoordinatesWithZ(currentPosition, UNITY_MATRIX_VP).xy;
+                    float cameraDepth = tex2D(_CameraDepthTexture, screenUV).r;
+                    float cameraEyeDepth = LinearEyeDepth(cameraDepth, _ZBufferParams);
+                    if(cameraEyeDepth < distance(currentPosition, _WorldSpaceCameraPos)) break;
+
+                    // float3 spotLightToPixel = currentPosition - _WorldSpaceSpotLightPos;
+                    // float2 spotLightUV = float2(dot(spotLightToPixel, _RightDirection),dot(spotLightToPixel, upDirection));
+                    // spotLightUV = (spotLightUV + _OrthographicCameraSize) / (_OrthographicCameraSize * 2);
+                    float4 curStepSpotLightCameraProjPos = mul( _SpotLightCameraViewProjectionMatrix , float4(currentPosition, 1));
+                    float3 curStepSpotLightCameraNDCPos = curStepSpotLightCameraProjPos.xyz / curStepSpotLightCameraProjPos.w;
+                    float2 spotLightUV = curStepSpotLightCameraNDCPos.xy * 0.5 + 0.5;
+                    
+                    float spotLightDepth = SAMPLE_TEXTURE2D(_SpotLightDepthTexture, sampler_SpotLightDepthTexture, spotLightUV);
+                    float4 _SpotLightCameraZBufferParam =
+                        float4((_SpotLightCameraFarPlane - _SpotLightCameraNearPlane) / _SpotLightCameraNearPlane,
+                                1,
+                                (_SpotLightCameraFarPlane - _SpotLightCameraNearPlane) / ( _SpotLightCameraNearPlane * _SpotLightCameraFarPlane),
+                                1 / _SpotLightCameraFarPlane);
+                    float spotLightEyeDepth = LinearEyeDepth(spotLightDepth, _SpotLightCameraZBufferParam);
+                      
+                    float3 spotLightToCurrentPosition = currentPosition - _WorldSpaceSpotLightPos;
+                    float spotLightToCurrentPositionDistance = dot(spotLightToCurrentPosition, _ForwardDirection);
+                    if(spotLightEyeDepth < spotLightToCurrentPositionDistance) continue;
+
+                    validSteps ++;
+                    color += _SpotLightColor;
+                    
                 }
-                return lightPositionDepth >= lightTextureDepth;
-            }
-
-            real4 frag(v2f i) : SV_Target
-            {
-                float depth = tex2D(_CameraDepthTexture, i.uv);
-                // return depth;
-                // return Linear01Depth(depth, _ZBufferParams);
-                float3 viewPos = i.viewPos * Linear01Depth(depth, _ZBufferParams);
-                float4 worldPos = mul(unity_CameraToWorld, float4(viewPos.xy, viewPos.z * -1, 1));
-
-                // return worldPos;
+                float3 finalColor = color * _ColorIntensity;
+                float alpha = validSteps / _MaxStepCount * _AlphaIntensity;
+                return float4(finalColor, alpha);
                 
-                float4 baseColor = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_PointClamp, i.uv);
-                float3 cameraPos = _WorldSpaceCameraPos;
-                float3 cameraStepForwardDir = normalize(worldPos - cameraPos);
-                float4 finalColor = baseColor;
-                
-                float4 lightClipPos = mul(_LightViewProjectionMatrix, float4(worldPos));
-                float2 lightUV = float2(lightClipPos.x / lightClipPos.w, lightClipPos.y / lightClipPos.w) * 0.5 + 0.5;
-                float lightPositionDepth = Linear01Depth(-1 * lightClipPos.z / lightClipPos.w * 0.5 + 0.5,_ZBufferParams);
-                // return lightPositionDepth;
-                float lightTextureDepth = Linear01Depth(tex2D(_LightDepthTexture, lightUV).r,_ZBufferParams);
-                return lightTextureDepth;
-                // return tex2D(_LightDepthTexture, lightUV).r;
-
-                int stepCount = 64;
-                float stepLightness = _MaxLightness / stepCount;
-                for (int j = 1; j <= stepCount; j++)
+                float2 lastFrameScreenUV = ComputeNormalizedDeviceCoordinatesWithZ(i.worldPos,  mul(UNITY_MATRIX_P , _LastFrameWorldToCameraMatrix)).xy;
+                float lastFrameNearestDepth = SAMPLE_TEXTURE2D(_LastFrameDepthTexture,sampler_LastFrameDepthTexture,lastFrameScreenUV);
+                float lastFrameNearestEyeDepth = LinearEyeDepth(lastFrameNearestDepth, _ZBufferParams);
+                float lastFrameCurrentPositionEyeDepth = -mul(_LastFrameWorldToCameraMatrix, float4(i.worldPos, 1)).z;
+                if(abs(lastFrameNearestEyeDepth - lastFrameCurrentPositionEyeDepth) < 0.001 && all(lastFrameScreenUV > 0 && lastFrameScreenUV < 1))
                 {
-                    float3 samplePos = worldPos - cameraStepForwardDir * _StepLength * j;
-
-                    if (!IsInVolume(samplePos))
-                    {
-                        break;
-                    }
-                    else if (!LightDetected(samplePos))
-                    {
-                        continue;
-                    }
-
-                    finalColor += stepLightness;
+                    float4 lastFrameColor = SAMPLE_TEXTURE2D(_LastFrameColorTexture, sampler_LastFrameColorTexture, lastFrameScreenUV);
+                    finalColor = finalColor * (1 - _BlendFactor) + lastFrameColor.xyz / alpha * _BlendFactor;
                 }
-                return finalColor;
+
+                return float4(finalColor, alpha);
+ 
             }
             ENDHLSL
         }

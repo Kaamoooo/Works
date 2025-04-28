@@ -1,5 +1,24 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-8612072092019788075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24bca1ca5f622284c9117cd75721284e, type: 3}
+  m_Name: VolumetricLightRendererFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  m_VolumetricLightMaterial: {fileID: 2100000, guid: 028c78eb2628a284ba7ee72246be0e54,
+    type: 2}
+  m_VolumetricLightBlendMaterial: {fileID: 2100000, guid: 888bafacd8ade2345a44de67eaa24546,
+    type: 2}
+  m_BlitMaterial: {fileID: 2100000, guid: fcf0b063ba6e4bd41b821edea549a534, type: 2}
+  m_BlendFactor: 0.822
 --- !u!114 &-3085165655906482429
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10,12 +29,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a865e3dbfa3bb9841a149a7915d249b5, type: 3}
-  m_Name: VolumetricLightFeature
+  m_Name: Camera Textuer Blit Feature
   m_EditorClassIdentifier: 
   m_Active: 0
-  settings:
-    material: {fileID: 2100000, guid: 028c78eb2628a284ba7ee72246be0e54, type: 2}
-    whenToInsert: 550
+  m_BlitMaterial: {fileID: 2100000, guid: fcf0b063ba6e4bd41b821edea549a534, type: 2}
 --- !u!114 &-2249395278559039244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b3d386ba5cd94485973aee1479b272e, type: 3}
   m_Name: Black Hole
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   settings:
     passTag: Black Hole
     Event: 500
@@ -126,12 +143,12 @@ MonoBehaviour:
       type: 3}
   m_RendererFeatures:
   - {fileID: -1878332245247344467}
-  - {fileID: 706537796903938671}
-  - {fileID: -3085165655906482429}
   - {fileID: 4241637220448463808}
   - {fileID: 2550084254674095361}
   - {fileID: -2249395278559039244}
-  m_RendererFeatureMap: adc0de57c6d2eee56faad8046220ce090387758e2e4a2fd5c0ebe72e9452dd3a018d2a631eb86323f4300c76e98ac8e0
+  - {fileID: -3085165655906482429}
+  - {fileID: -8612072092019788075}
+  m_RendererFeatureMap: adc0de57c6d2eee5c0ebe72e9452dd3a018d2a631eb86323f4300c76e98ac8e00387758e2e4a2fd5d5f61a9f0fc67b88
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -176,22 +193,6 @@ MonoBehaviour:
   m_CopyDepthMode: 2
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
---- !u!114 &706537796903938671
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c47a33a6cb7ca99478481e8ca3b13393, type: 3}
-  m_Name: VolumetricCloudFeature
-  m_EditorClassIdentifier: 
-  m_Active: 0
-  settings:
-    material: {fileID: 2100000, guid: 0e090af7f3174ef4293802132b94bf41, type: 2}
-    whenToInsert: 400
 --- !u!114 &2550084254674095361
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,7 +205,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e72d43a97643fb4298650db7c0be09b, type: 3}
   m_Name: CameraTextureRendererFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
 --- !u!114 &4241637220448463808
 MonoBehaviour:
   m_ObjectHideFlags: 0

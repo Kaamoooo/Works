@@ -126,7 +126,7 @@ Material:
     - _ReceiveShadows: 1
     - _Smoothness: 0.34000003
     - _SmoothnessTextureChannel: 0
-    - _SnowHeight: 1.24
+    - _SnowHeight: 1.92
     - _SnowScale: 0.61
     - _SpecularHighlights: 1
     - _SrcBlend: 1

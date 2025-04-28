@@ -16,7 +16,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -29,10 +29,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AlphaIntensity: 0.083
+    - _BlendFactor: 0.9
+    - _ColorIntensity: 0.315
+    - _JitterScale: 0.1
     - _Lightness: 0.095
     - _MaxLightness: 0.236
+    - _MaxStepCount: 74
     - _StepCount: 100
-    - _StepLength: 0.08
+    - _StepLength: 0.05
     - _TotalStepLength: 2
     m_Colors: []
   m_BuildTextureStacks: []
