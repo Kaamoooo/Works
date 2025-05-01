@@ -42,6 +42,18 @@ SSR则使用Renderer Feature，预先对Depth Texture进行Mipmap处理，存储
 
 *在获取Opaque Texture中遇到了一些小问题，即尽管我的Render Pass在Before Rendering Skybox阶段，Opaque Texture仍然会有Skybox的Color，但是我不想让我的SSR反射skybox。经检查，Camera Color在rendering之前没有被清除，只是默认清除了depth与stencil，后续渲染会将其覆盖而已。所以我手动在Before Rendering Opaques添加了一个清除Camera Color的pass*
 
+
+
+## Verlet积分 绳索
+
+![Rope](./README.assets/Rope.gif)
+
+基于Verlet积分的绳索，使用当前帧与上一帧的插值配合模拟粒子速度。每一帧更新对应节点的位置，并可以选择配合一些固定端点。
+
+然而这种实现难以结合碰撞检测
+
+
+
 ## 动态雪地
 
 
