@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24bca1ca5f622284c9117cd75721284e, type: 3}
   m_Name: VolumetricLightRendererFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_VolumetricLightMaterial: {fileID: 2100000, guid: 028c78eb2628a284ba7ee72246be0e54,
     type: 2}
   m_VolumetricLightBlendMaterial: {fileID: 2100000, guid: 888bafacd8ade2345a44de67eaa24546,
