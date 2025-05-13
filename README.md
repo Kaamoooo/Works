@@ -54,6 +54,22 @@ SSR则使用Renderer Feature，预先对Depth Texture进行Mipmap处理，存储
 
 
 
+## Shadow
+
+Default: Unity默认hard shadow实现
+
+![image-20250513133156910](./README.assets/image-20250513133156910.png)
+
+PCF: 软阴影具有相对均匀的宽度（为了相对于unity自身soft shadow算法更明显的软阴影效果，调大了软阴影宽度，不可避免的产生了一点artifact）
+
+![image-20250513133055399](./README.assets/image-20250513133055399.png)
+
+PCSS: 软阴影依据距离，光源大小等来动态改变宽度（改变卷积核范围）
+
+![image-20250513133019735](./README.assets/image-20250513133019735.png)
+
+
+
 ## 动态雪地
 
 
